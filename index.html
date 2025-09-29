@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RhinoMapToolbox</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- Iconoir CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/iconoir-icons/iconoir@main/css/iconoir.css">
+
+    <!-- Application CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            🦏 RhinoMapToolbox
+            <span class="subtitle">Réalisé avec ❤️ par Degun @ oscarzulu</span>
+        </div>
+
+        <div class="toolbar">
+            <button class="tool-btn" id="point-tool" title="Placer et nommer des points de repère">
+                <i class="iconoir-pin-alt"></i>
+                <span class="tool-label">Points nommés</span>
+            </button>
+
+            <button class="tool-btn" id="line-tool" title="Tracer des segments avec mesures">
+                <i class="iconoir-linear"></i>
+                <span class="tool-label">Tracé mesuré</span>
+            </button>
+
+            <button class="tool-btn" id="constraints-tool" title="Contraintes de tracé (Ctrl+L)" style="display: none;">
+                <i class="iconoir-settings"></i>
+                <span class="tool-label">Contraintes</span>
+            </button>
+
+            <button class="tool-btn" id="circle-tool" title="Mesurer une zone circulaire">
+                <i class="iconoir-circle"></i>
+                <span class="tool-label">Zone circulaire</span>
+            </button>
+
+            <button class="tool-btn" id="polygon-tool" title="Calculer l'aire d'un polygone">
+                <i class="iconoir-multi-window"></i>
+                <span class="tool-label">Aire polygone</span>
+            </button>
+
+            <button class="tool-btn" id="clear-tool" title="Effacer tous les éléments">
+                <i class="iconoir-trash"></i>
+                <span class="tool-label">Effacer tout</span>
+            </button>
+        </div>
+
+        <div class="layer-controls">
+            <button class="layer-btn active" id="map-layer">
+                <i class="iconoir-map"></i>
+                Carte
+            </button>
+            <button class="layer-btn" id="satellite-layer">
+                <i class="iconoir-globe"></i>
+                Satellite
+            </button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div id="map"></div>
+
+        <div class="info-panel">
+            <h3>Informations</h3>
+            <div id="info-content">
+                <div class="info-item">Outil: Aucun sélectionné</div>
+                <div class="info-item">Clic pour commencer</div>
+            </div>
+        </div>
+
+        <div class="coordinates" id="coordinates">
+            Lat: 0.000000, Lng: 0.000000
+        </div>
+
+        <div class="file-controls">
+            <input type="file" id="file-input" accept=".json" class="hidden">
+            <button class="file-btn" id="import-btn">
+                <i class="iconoir-import"></i>
+                Importer
+            </button>
+            <button class="file-btn" id="export-btn">
+                <i class="iconoir-export"></i>
+                Exporter
+            </button>
+        </div>
+
+        <!-- Panneau de contraintes de tracé -->
+        <div id="constraints-panel" class="constraints-panel hidden">
+            <div class="panel-header">
+                <h3><i class="iconoir-settings"></i> Contraintes</h3>
+                <button class="panel-toggle" id="panel-toggle">
+                    <i class="iconoir-nav-arrow-left"></i>
+                </button>
+            </div>
+
+            <div class="panel-body">
+                <div class="constraint-group">
+                    <label class="constraint-label">
+                        <input type="checkbox" id="lock-distance" class="constraint-checkbox">
+                        <span class="checkmark"></span>
+                        Distance
+                    </label>
+                    <div class="constraint-input">
+                        <input type="number" id="distance-value" placeholder="m" min="0" step="0.01">
+                        <span class="unit">m</span>
+                    </div>
+                </div>
+
+                <div class="constraint-group">
+                    <label class="constraint-label">
+                        <input type="checkbox" id="lock-azimuth" class="constraint-checkbox">
+                        <span class="checkmark"></span>
+                        Azimut
+                    </label>
+                    <div class="constraint-input">
+                        <input type="number" id="azimuth-value" placeholder="°" min="0" max="360" step="0.1">
+                        <span class="unit">°</span>
+                    </div>
+                </div>
+
+                <div class="panel-stats" id="panel-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Segments:</span>
+                        <span class="stat-value" id="segment-count">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Total:</span>
+                        <span class="stat-value" id="total-distance">0.0m</span>
+                    </div>
+                </div>
+
+                <div class="panel-controls">
+                    <button class="btn-small btn-secondary" id="reset-constraints">
+                        <i class="iconoir-refresh"></i>
+                        Reset
+                    </button>
+                    <button class="btn-small btn-danger" id="finish-line" style="display: none;">
+                        <i class="iconoir-check-circle"></i>
+                        Terminer
+                    </button>
+                </div>
+
+                <div class="constraint-info">
+                    <div class="info-row">
+                        <kbd>Clic</kbd> segment | <kbd>Double-clic</kbd> fin
+                    </div>
+                    <div class="info-row">
+                        <kbd>Échap</kbd> annuler
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal simple pour nommer les points -->
+        <div id="point-name-modal" class="simple-modal hidden">
+            <div class="simple-modal-content">
+                <h3>Nommer le point</h3>
+                <input type="text" id="point-name-input" placeholder="Nom du point" maxlength="30">
+                <div class="simple-modal-buttons">
+                    <button class="btn-secondary" id="cancel-point">Annuler</button>
+                    <button class="btn-primary" id="confirm-point">Confirmer</button>
+                </div>
+            </div>
+        </div>
+        <div id="simple-modal-overlay" class="simple-modal-overlay hidden"></div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Application JS -->
+    <script src="app.js"></script>
+</body>
+</html>

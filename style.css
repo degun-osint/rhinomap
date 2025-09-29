@@ -1,0 +1,673 @@
+/* RhinoMapToolbox Styles */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background: #1a1a1a;
+    color: #fff;
+    overflow: hidden;
+}
+
+.header {
+    background: linear-gradient(135deg, #2c3e50, #34495e);
+    padding: 12px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    z-index: 1000;
+    position: relative;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #e74c3c;
+}
+
+.subtitle {
+    font-size: 12px;
+    color: #bdc3c7;
+    margin-left: 5px;
+}
+
+.toolbar {
+    display: flex;
+    gap: 8px;
+    background: rgba(52, 73, 94, 0.8);
+    padding: 8px;
+    border-radius: 8px;
+}
+
+.tool-btn {
+    background: rgba(236, 240, 241, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    min-width: 80px;
+}
+
+.tool-label {
+    font-size: 10px;
+    text-align: center;
+    line-height: 1.2;
+    opacity: 0.9;
+}
+
+.tool-btn:hover {
+    background: rgba(52, 152, 219, 0.3);
+    border-color: #3498db;
+}
+
+.tool-btn.active {
+    background: #3498db;
+    border-color: #2980b9;
+}
+
+.layer-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.layer-btn {
+    background: rgba(46, 204, 113, 0.2);
+    border: 1px solid #2ecc71;
+    color: #2ecc71;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.layer-btn:hover {
+    background: #2ecc71;
+    color: #fff;
+}
+
+.layer-btn.active {
+    background: #2ecc71;
+    color: #fff;
+}
+
+.main-content {
+    height: calc(100vh - 64px);
+    position: relative;
+}
+
+#map {
+    height: 100%;
+    width: 100%;
+}
+
+.info-panel {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 15px;
+    border-radius: 8px;
+    min-width: 250px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 1000;
+}
+
+.info-panel h3 {
+    margin-bottom: 10px;
+    color: #e74c3c;
+    font-size: 16px;
+}
+
+.info-item {
+    margin: 5px 0;
+    font-size: 14px;
+    color: #bdc3c7;
+}
+
+.info-item strong {
+    color: #fff;
+}
+
+.file-controls {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    gap: 10px;
+    z-index: 1000;
+}
+
+.file-btn {
+    background: rgba(155, 89, 182, 0.9);
+    border: none;
+    color: #fff;
+    padding: 10px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.file-btn:hover {
+    background: #9b59b6;
+}
+
+.hidden {
+    display: none;
+}
+
+.coordinates {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 12px;
+    z-index: 1000;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.measurement-tooltip {
+    background: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    padding: 5px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: monospace;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: opacity 0.2s ease-in-out;
+}
+
+.measurement-tooltip.fade-in {
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+.measurement-tooltip.fade-out {
+    animation: fadeOut 0.2s ease-in-out forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+}
+
+/* Segment labels */
+.segment-label {
+    background: rgba(231, 76, 60, 0.9) !important;
+    color: #fff !important;
+    padding: 4px 8px !important;
+    border-radius: 4px !important;
+    font-size: 11px !important;
+    font-family: monospace !important;
+    font-weight: bold !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+    text-align: center !important;
+    line-height: 1.2 !important;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .header {
+        flex-direction: column;
+        gap: 10px;
+        padding: 10px;
+    }
+
+    .toolbar {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .info-panel {
+        position: relative;
+        top: auto;
+        right: auto;
+        margin: 10px;
+        min-width: auto;
+    }
+
+    .coordinates,
+    .file-controls {
+        position: relative;
+        bottom: auto;
+        left: auto;
+        right: auto;
+        margin: 10px;
+        justify-content: center;
+    }
+
+    .main-content {
+        height: auto;
+        min-height: calc(100vh - 120px);
+    }
+}
+
+/* Leaflet popup customization */
+.leaflet-popup-content-wrapper {
+    background: rgba(0, 0, 0, 0.9);
+    color: #fff;
+    border-radius: 8px;
+}
+
+.leaflet-popup-content {
+    color: #fff;
+    font-size: 13px;
+}
+
+.leaflet-popup-tip {
+    background: rgba(0, 0, 0, 0.9);
+}
+
+/* Animation for tools */
+.tool-btn {
+    position: relative;
+    overflow: hidden;
+}
+
+.tool-btn::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+}
+
+.tool-btn:hover::after {
+    left: 100%;
+}
+
+/* Loading animation */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading {
+    animation: spin 1s linear infinite;
+}
+
+/* Status indicators */
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 5px;
+}
+
+.status-active {
+    background: #2ecc71;
+    box-shadow: 0 0 5px #2ecc71;
+}
+
+.status-inactive {
+    background: #95a5a6;
+}
+
+.status-warning {
+    background: #f39c12;
+    box-shadow: 0 0 5px #f39c12;
+}
+
+/* Panneau de contraintes */
+.constraints-panel {
+    position: fixed;
+    top: 80px;
+    left: 20px;
+    width: 280px;
+    background: linear-gradient(135deg, #2c3e50, #34495e);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 1500;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.constraints-panel:not(.hidden) {
+    transform: translateX(0);
+}
+
+.constraints-panel.collapsed {
+    transform: translateX(calc(-100% + 50px));
+}
+
+.panel-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(231, 76, 60, 0.1);
+}
+
+.panel-header h3 {
+    color: #e74c3c;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+}
+
+.panel-toggle {
+    background: none;
+    border: none;
+    color: #bdc3c7;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.panel-toggle:hover {
+    background: rgba(231, 76, 60, 0.2);
+    color: #e74c3c;
+}
+
+.panel-body {
+    padding: 16px;
+}
+
+.constraint-group {
+    margin-bottom: 16px;
+}
+
+.constraint-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #ecf0f1;
+    font-size: 13px;
+    cursor: pointer;
+    margin-bottom: 8px;
+    position: relative;
+}
+
+.constraint-checkbox {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #7f8c8d;
+    border-radius: 3px;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.constraint-checkbox:checked {
+    background: #3498db;
+    border-color: #3498db;
+}
+
+.constraint-checkbox:checked::after {
+    content: '✓';
+    color: white;
+    font-size: 10px;
+    position: absolute;
+    left: 2px;
+    top: 1px;
+}
+
+.constraint-input {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 24px;
+}
+
+.constraint-input input {
+    flex: 1;
+    background: rgba(52, 73, 94, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #ecf0f1;
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+    transition: all 0.2s ease;
+}
+
+.constraint-input input:focus {
+    outline: none;
+    border-color: #3498db;
+    background: rgba(52, 73, 94, 0.8);
+}
+
+.constraint-input .unit {
+    color: #bdc3c7;
+    font-size: 11px;
+    min-width: 15px;
+}
+
+.panel-stats {
+    background: rgba(52, 152, 219, 0.1);
+    border: 1px solid rgba(52, 152, 219, 0.3);
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 12px;
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.stat-item:last-child {
+    margin-bottom: 0;
+}
+
+.stat-label {
+    color: #bdc3c7;
+    font-size: 12px;
+}
+
+.stat-value {
+    color: #3498db;
+    font-size: 13px;
+    font-weight: bold;
+    font-family: monospace;
+}
+
+.panel-controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.btn-small {
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s ease;
+    flex: 1;
+    justify-content: center;
+}
+
+.btn-danger {
+    background: #e74c3c;
+    color: #fff;
+}
+
+.btn-danger:hover {
+    background: #c0392b;
+}
+
+.constraint-info {
+    background: rgba(52, 152, 219, 0.1);
+    border: 1px solid rgba(52, 152, 219, 0.2);
+    border-radius: 4px;
+    padding: 8px;
+    font-size: 11px;
+    color: #3498db;
+}
+
+.info-row {
+    margin-bottom: 2px;
+    text-align: center;
+}
+
+.info-row:last-child {
+    margin-bottom: 0;
+}
+
+.btn-secondary {
+    background: rgba(149, 165, 166, 0.2);
+    color: #bdc3c7;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-secondary:hover {
+    background: rgba(149, 165, 166, 0.3);
+    color: #ecf0f1;
+}
+
+/* Modal simple pour nommer les points */
+.simple-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    z-index: 3000;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.simple-modal-overlay:not(.hidden) {
+    opacity: 1;
+}
+
+.simple-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    z-index: 3001;
+    opacity: 0;
+    transition: all 0.2s ease;
+}
+
+.simple-modal:not(.hidden) {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.simple-modal-content {
+    background: linear-gradient(135deg, #2c3e50, #34495e);
+    border-radius: 8px;
+    padding: 20px;
+    min-width: 300px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.simple-modal-content h3 {
+    margin: 0 0 15px 0;
+    color: #e74c3c;
+    font-size: 16px;
+    text-align: center;
+}
+
+.simple-modal-content input {
+    width: 100%;
+    background: rgba(52, 73, 94, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #ecf0f1;
+    padding: 10px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    margin-bottom: 15px;
+    transition: all 0.2s ease;
+}
+
+.simple-modal-content input:focus {
+    outline: none;
+    border-color: #3498db;
+    background: rgba(52, 73, 94, 0.8);
+}
+
+.simple-modal-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.btn-primary {
+    background: #3498db;
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+    background: #2980b9;
+}
+
+/* Smooth transitions */
+* {
+    transition: all 0.2s ease;
+}
+
+button, .tool-btn, .layer-btn, .file-btn {
+    transition: all 0.2s ease;
+}
