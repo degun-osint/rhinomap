@@ -1,18 +1,19 @@
 # 🦏 RhinoMapToolbox
 
-Une application JavaScript locale pour la cartographie et les mesures géographiques.
-
-*Réalisé avec ❤️ par Degun @ oscarzulu*
+Une application JavaScript locale complète pour la cartographie et les mesures géographiques avec outils avancés.
 
 ## 🌟 Fonctionnalités
 
 - **🗺️ Cartes multiples** : Vue OpenStreetMap et vue satellite
-- **📍 Placement de points** : Ajout de points d'intérêt sur la carte
-- **📏 Tracé de traits** : Mesure de distance et d'azimut en temps réel
-- **⭕ Cercles de mesure** : Création de zones circulaires avec calcul de superficie
-- **🔺 Triangulation** : Calcul de triangles avec aires et périmètres
-- **💾 Export/Import** : Sauvegarde et chargement des tracés en format JSON
-- **📱 Interface moderne** : Design responsive avec icônes Iconoir
+- **📍 Points nommés** : Placement et nommage de points d'intérêt avec labels persistants
+- **📏 Tracé mesuré** : Lignes multi-segments avec mesures en temps réel et système de contraintes
+- **⚙️ Contraintes de tracé** : Verrouillage de distance et d'azimut pour un tracé précis
+- **⭕ Zones circulaires** : Création de cercles avec calcul de superficie en temps réel
+- **🔺 Aires de polygones** : Calcul d'aires de polygones complexes
+- **⏱️ Isochrones** : Calcul d'isochrones et isodistances avec l'API IGN Géoplateforme
+- **🔍 Recherche géographique** : Recherche d'adresses et lieux via Nominatim
+- **💾 Export/Import** : Sauvegarde complète en format JSON
+- **📱 Interface moderne** : Design responsive avec glassmorphism et icônes Iconoir
 
 ## 🚀 Utilisation
 
@@ -22,28 +23,51 @@ Une application JavaScript locale pour la cartographie et les mesures géographi
 
 ### Outils disponibles
 
-#### 📍 Points
+#### 📍 Points nommés
 - Cliquez sur la carte pour placer un point
-- Les coordonnées sont affichées dans une popup
+- Nommez le point dans la boîte de dialogue
+- Cliquez sur le nom pour le renommer
+- Labels persistants toujours visibles
 
-#### 📏 Traits
-- Premier clic : point de départ
-- Déplacement : aperçu en temps réel avec distance et azimut
-- Deuxième clic : point d'arrivée et finalisation
+#### 📏 Tracé mesuré
+- Cliquez pour commencer un tracé multi-segments
+- Chaque segment affiche distance et azimut en temps réel
+- **Clic droit** ou **Ctrl+clic** pour terminer le tracé
+- **Échap** pour annuler
 
-#### ⭕ Cercles
+#### ⚙️ Contraintes de tracé
+- Verrouillez la distance pour tracer des segments de longueur fixe
+- Verrouillez l'azimut pour tracer dans une direction précise
+- Panneau de contraintes avec statistiques en temps réel
+
+#### ⭕ Zones circulaires
 - Premier clic : centre du cercle
-- Déplacement : ajustement du rayon
-- Deuxième clic : finalisation avec calcul de superficie
+- Déplacement : ajustement du rayon avec superficie en temps réel
+- Deuxième clic : finalisation
 
-#### 🔺 Triangles
-- Cliquez sur 3 points pour former un triangle
-- Calcul automatique des côtés, aire et périmètre
+#### 🔺 Aires de polygones
+- Cliquez pour créer les sommets du polygone
+- **Clic droit** ou **Ctrl+clic** pour fermer le polygone
+- Calcul automatique de l'aire
+
+#### ⏱️ Isochrones
+- Cliquez sur la carte pour placer le point de départ
+- Configurez le mode de transport (voiture/piéton)
+- Choisissez isochrone (temps) ou isodistance
+- Définissez les contraintes (éviter péages, tunnels, ponts)
+- Le point de départ reste visible après calcul
+- ⚠️ **Limitation géographique** : Fonctionne uniquement en France métropolitaine et DOM-TOM
+
+#### 🔍 Recherche
+- Tapez une adresse ou un lieu dans la barre de recherche
+- Sélectionnez un résultat pour centrer la carte
+- Intégration avec l'API Nominatim
 
 ### Contrôles
 
 - **Échap** : Annuler l'action en cours
-- **Effacer** : Supprimer tous les éléments
+- **Clic droit / Ctrl+clic** : Terminer un tracé multi-segments
+- **Effacer tout** : Supprimer tous les éléments
 - **Carte/Satellite** : Changer de vue
 - **Import/Export** : Sauvegarder/charger les tracés
 
@@ -53,78 +77,173 @@ Une application JavaScript locale pour la cartographie et les mesures géographi
 rhinomap/
 ├── index.html      # Structure HTML principale
 ├── style.css       # Styles et mise en forme
-├── app.js         # Logique JavaScript
-└── README.md      # Documentation
+├── app.js         # Logique JavaScript complète
+├── README.md      # Documentation
+└── isochrone/     # Documentation API isochrones
+    ├── itineraire.yaml
+    └── response.json
 ```
 
 ## 📦 Dépendances
 
-- **Leaflet** : Bibliothèque de cartographie (CDN)
+- **Leaflet 1.9.4** : Bibliothèque de cartographie (CDN)
 - **Iconoir** : Icônes modernes (CDN)
 - **OpenStreetMap** : Tiles de carte
 - **ArcGIS** : Tiles satellite
+- **Nominatim** : API de géocodage pour la recherche
+- **IGN Géoplateforme** : API pour les isochrones
 
 ## 🎯 Fonctionnalités techniques
 
 ### Calculs géographiques
-- Distance orthodromique (great circle)
-- Calcul d'azimut vrai
-- Aires géométriques
-- Coordonnées géographiques précises
+- Distance orthodromique (great circle) avec formule de Haversine
+- Calcul d'azimut vrai avec gestion des quadrants
+- Aires géométriques avec formule de Shoelace
+- Coordonnées géographiques haute précision
+- Conversions d'unités (mètres, kilomètres, minutes, secondes)
 
-### Interface utilisateur
-- Interface responsive
-- Tooltips informatifs en temps réel
+### Système de contraintes
+- Verrouillage de distance avec validation en temps réel
+- Verrouillage d'azimut avec snap automatique
+- Feedback visuel et statistiques de tracé
+- Réinitialisation et gestion des états
+
+### Interface utilisateur avancée
+- Panneaux coulissants non-bloquants
+- Tooltips informatifs en temps réel avec throttling
 - Feedback visuel pour toutes les actions
-- Gestion des états d'outils
+- Gestion des états d'outils avec persistence
+- Modales contextuelles pour la saisie
+- Design responsive avec breakpoints mobiles
 
-### Persistance des données
-- Export JSON structuré avec métadonnées
-- Import avec restauration complète
-- Format de données versionné
+### Persistance et export
+- Export JSON structuré avec métadonnées complètes
+- Import avec restauration de tous les éléments
+- Format de données versionné et extensible
+- Gestion des erreurs et validation
 
-## 🌐 Utilisation locale
+### Performance
+- Throttling des événements mousemove (50ms)
+- Optimisation des calculs géométriques
+- Mise en cache des résultats de recherche
+- Gestion mémoire avec nettoyage automatique
 
-Cette application fonctionne entièrement côté client :
-- Pas de serveur requis
-- Données stockées localement
-- Fonctionne hors ligne (après premier chargement)
+## 🌐 APIs intégrées
+
+### Nominatim (Recherche)
+- Géocodage d'adresses et lieux
+- Résultats formatés avec détails
+- Gestion des erreurs réseau
+- Cache des recherches récentes
+
+### IGN Géoplateforme (Isochrones)
+- Calcul d'isochrones et isodistances
+- Support voiture et piéton
+- Contraintes de routage (péages, tunnels, ponts)
+- Formats de sortie GeoJSON
+- Gestion des directions (depuis/vers)
+- **Zone de couverture** : France métropolitaine et DOM-TOM uniquement
+- **Coordonnées supportées** : Longitude entre -21.42 et 51.27, Latitude selon les territoires français
 
 ## 📋 Format d'export
 
 ```json
 {
   "timestamp": "2024-01-01T12:00:00.000Z",
-  "version": "1.0",
+  "version": "2.0",
   "data": {
-    "points": [...],
-    "lines": [...],
+    "points": [{
+      "id": "point_123",
+      "name": "Point d'intérêt",
+      "coordinates": [45.7640, 4.8357],
+      "timestamp": "2024-01-01T12:00:00.000Z"
+    }],
+    "lines": [{
+      "id": "line_456",
+      "segments": [...],
+      "totalDistance": 1500.25,
+      "coordinates": [...]
+    }],
     "circles": [...],
-    "triangles": [...]
+    "polygons": [...],
+    "isochrones": [...]
   }
 }
 ```
 
-## 🎨 Personnalisation
+## 🎨 Thème et personnalisation
 
-### Couleurs des outils
-- Points : Markers Leaflet par défaut
-- Traits : Rouge (`#e74c3c`)
-- Cercles : Orange (`#f39c12`)
-- Triangles : Violet (`#9b59b6`)
+### Palette de couleurs
+- **Points** : Rouge (#e74c3c) avec icônes personnalisées
+- **Lignes** : Bleu (#3498db) avec labels persistants
+- **Cercles** : Orange (#f39c12) avec aires dynamiques
+- **Polygones** : Violet (#9b59b6) avec calculs temps réel
+- **Isochrones** : Bleu clair (#3388ff) avec transparence
 
-### Interface
-- Thème sombre par défaut
-- Design moderne avec glassmorphism
-- Animations fluides
+### Design system
+- Thème sombre avec glassmorphism
+- Gradients et ombres subtiles
+- Animations fluides (transition 0.2s)
+- Typographie système moderne
+- Interface responsive avec breakpoints
 
 ## 📱 Compatibilité
 
-- Navigateurs modernes (Chrome, Firefox, Safari, Edge)
-- Support mobile et desktop
-- Interface responsive
+- **Navigateurs** : Chrome 90+, Firefox 88+, Safari 14+, Edge 90+
+- **Mobile** : Interface tactile optimisée
+- **Desktop** : Support clavier complet
+- **Offline** : Fonctionne après premier chargement (cartes en cache)
+
+## 🔗 Liens
+
+- **GitHub** : [https://github.com/degun-osint/rhinomap](https://github.com/degun-osint/rhinomap)
+- **Support** : [https://ko-fi.com/D1D11CYJEY](https://ko-fi.com/D1D11CYJEY)
+
+## 📄 Licence
+
+Ce projet est distribué sous la licence **GNU General Public License v3.0 (GPLv3)**.
+
+### Résumé de la licence GPLv3
+
+- ✅ **Usage commercial** : Autorisé
+- ✅ **Modification** : Autorisée
+- ✅ **Distribution** : Autorisée
+- ✅ **Usage privé** : Autorisé
+- ✅ **Brevet** : Protection accordée
+
+- ⚠️ **Copyleft** : Les œuvres dérivées doivent être sous la même licence
+- ⚠️ **Code source** : Doit être fourni avec les distributions
+- ⚠️ **Notice de licence** : Doit être incluse dans les copies
+- ⚠️ **Changements d'état** : Les modifications doivent être documentées
+
+### Texte complet de la licence
+
+Voir le fichier [LICENSE](./LICENSE) pour le texte complet de la licence GPLv3.
+
+Copyright (C) 2024 Degun @ oscarzulu
 
 ## 🤝 Contribution
 
-Développé par Degun @ oscarzulu
-Suggestions et améliorations bienvenues !
+Développé avec ❤️ par **Degun @ oscarzulu**
+
+### Comment contribuer
+1. Fork le projet
+2. Créez une branche pour votre fonctionnalité
+3. Commitez vos changements
+4. Poussez vers la branche
+5. Ouvrez une Pull Request
+
+### Développement local
+```bash
+# Cloner le repository
+git clone https://github.com/degun-osint/rhinomap.git
+
+# Ouvrir dans un navigateur
+open index.html
+```
+
+Suggestions, améliorations et rapports de bugs bienvenus !
+
+---
+
+*RhinoMapToolbox - Outil de cartographie et mesure géographique libre et open source*

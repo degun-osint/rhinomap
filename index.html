@@ -18,16 +18,15 @@
     <div class="header">
         <div class="logo">
             🦏 RhinoMapToolbox
-            <span class="subtitle">Réalisé avec ❤️ par Degun @ oscarzulu</span>
         </div>
 
         <div class="toolbar">
             <button class="tool-btn" id="point-tool" title="Placer et nommer des points de repère">
-                <i class="iconoir-pin-alt"></i>
+                <i class="iconoir-map-pin"></i>
                 <span class="tool-label">Points nommés</span>
             </button>
 
-            <button class="tool-btn" id="line-tool" title="Tracer des segments avec mesures">
+            <button class="tool-btn" id="line-tool" title="Tracer des segments avec mesures - Clic droit ou Ctrl+clic pour finir">
                 <i class="iconoir-linear"></i>
                 <span class="tool-label">Tracé mesuré</span>
             </button>
@@ -42,9 +41,14 @@
                 <span class="tool-label">Zone circulaire</span>
             </button>
 
-            <button class="tool-btn" id="polygon-tool" title="Calculer l'aire d'un polygone">
+            <button class="tool-btn" id="polygon-tool" title="Calculer l'aire d'un polygone - Clic droit ou Ctrl+clic pour finir">
                 <i class="iconoir-multi-window"></i>
                 <span class="tool-label">Aire polygone</span>
+            </button>
+
+            <button class="tool-btn" id="isochrone-tool" title="Calculer les isochrones depuis un point">
+                <i class="iconoir-timer"></i>
+                <span class="tool-label">Isochrones</span>
             </button>
 
             <button class="tool-btn" id="clear-tool" title="Effacer tous les éléments">
@@ -74,23 +78,23 @@
                 <div class="info-item">Outil: Aucun sélectionné</div>
                 <div class="info-item">Clic pour commencer</div>
             </div>
+
+            <div class="search-container">
+                <div class="search-box">
+                    <input type="text" id="search-input" placeholder="Rechercher une adresse ou un lieu..." />
+                    <button id="search-btn">
+                        <i class="iconoir-search"></i>
+                    </button>
+                </div>
+                <div id="search-results" class="search-results hidden"></div>
+            </div>
         </div>
 
         <div class="coordinates" id="coordinates">
             Lat: 0.000000, Lng: 0.000000
         </div>
 
-        <div class="file-controls">
-            <input type="file" id="file-input" accept=".json" class="hidden">
-            <button class="file-btn" id="import-btn">
-                <i class="iconoir-import"></i>
-                Importer
-            </button>
-            <button class="file-btn" id="export-btn">
-                <i class="iconoir-export"></i>
-                Exporter
-            </button>
-        </div>
+        <input type="file" id="file-input" accept=".json" class="hidden">
 
         <!-- Panneau de contraintes de tracé -->
         <div id="constraints-panel" class="constraints-panel hidden">
@@ -150,10 +154,10 @@
 
                 <div class="constraint-info">
                     <div class="info-row">
-                        <kbd>Clic</kbd> segment | <kbd>Double-clic</kbd> fin
+                        <kbd>Clic</kbd> segment | <kbd>Clic droit</kbd> fin
                     </div>
                     <div class="info-row">
-                        <kbd>Échap</kbd> annuler
+                        <kbd>Ctrl+clic</kbd> fin | <kbd>Échap</kbd> annuler
                     </div>
                 </div>
             </div>
@@ -162,7 +166,7 @@
         <!-- Modal simple pour nommer les points -->
         <div id="point-name-modal" class="simple-modal hidden">
             <div class="simple-modal-content">
-                <h3>Nommer le point</h3>
+                <h3 id="modal-title">Nommer le point</h3>
                 <input type="text" id="point-name-input" placeholder="Nom du point" maxlength="30">
                 <div class="simple-modal-buttons">
                     <button class="btn-secondary" id="cancel-point">Annuler</button>
@@ -171,7 +175,187 @@
             </div>
         </div>
         <div id="simple-modal-overlay" class="simple-modal-overlay hidden"></div>
+
+        <!-- Menu contextuel pour édition des éléments -->
+        <div id="context-menu" class="context-menu hidden">
+            <div class="context-menu-item" id="edit-element">
+                <i class="iconoir-edit-pencil"></i>
+                <span>Modifier</span>
+            </div>
+            <div class="context-menu-item" id="change-color">
+                <i class="iconoir-palette"></i>
+                <span>Couleur</span>
+            </div>
+            <div class="context-menu-item" id="move-element">
+                <i class="iconoir-position"></i>
+                <span>Déplacer</span>
+            </div>
+            <div class="context-menu-item danger" id="delete-element">
+                <i class="iconoir-trash"></i>
+                <span>Supprimer</span>
+            </div>
+        </div>
+
+        <!-- Sous-menu couleurs -->
+        <div id="color-submenu" class="color-submenu hidden">
+            <div class="color-submenu-header">
+                <span>Choisir une couleur</span>
+                <button id="close-color-submenu" class="close-submenu-btn" title="Fermer">×</button>
+            </div>
+            <div class="color-options-grid">
+                <div class="color-option" data-color="#e74c3c" title="Rouge">
+                    <div class="color-circle" style="background-color: #e74c3c;"></div>
+                    <span>Rouge</span>
+                </div>
+                <div class="color-option" data-color="#3498db" title="Bleu">
+                    <div class="color-circle" style="background-color: #3498db;"></div>
+                    <span>Bleu</span>
+                </div>
+                <div class="color-option" data-color="#27ae60" title="Vert">
+                    <div class="color-circle" style="background-color: #27ae60;"></div>
+                    <span>Vert</span>
+                </div>
+                <div class="color-option" data-color="#f39c12" title="Orange">
+                    <div class="color-circle" style="background-color: #f39c12;"></div>
+                    <span>Orange</span>
+                </div>
+                <div class="color-option" data-color="#9b59b6" title="Violet">
+                    <div class="color-circle" style="background-color: #9b59b6;"></div>
+                    <span>Violet</span>
+                </div>
+                <div class="color-option" data-color="#e91e63" title="Rose">
+                    <div class="color-circle" style="background-color: #e91e63;"></div>
+                    <span>Rose</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panneau isochrones -->
+        <div id="isochrone-panel" class="constraints-panel hidden">
+            <div class="panel-header">
+                <h3><i class="iconoir-timer"></i> Isochrones</h3>
+                <button class="panel-toggle" id="isochrone-panel-toggle">
+                    <i class="iconoir-nav-arrow-left"></i>
+                </button>
+            </div>
+
+            <div class="panel-body">
+                <div class="constraint-group">
+                    <div class="info-row">
+                        <i class="iconoir-map-pin"></i> <span id="isochrone-point-info">Cliquez sur la carte pour placer le point de départ</span>
+                    </div>
+                </div>
+
+                <div class="constraint-group">
+                    <label class="constraint-label">Mode de déplacement :</label>
+                    <select id="transport-mode" class="constraint-input">
+                        <option value="car">Voiture</option>
+                        <option value="pedestrian">Piéton</option>
+                    </select>
+                </div>
+
+                <div class="constraint-group">
+                    <label class="constraint-label">Mode de calcul :</label>
+                    <select id="calc-mode" class="constraint-input">
+                        <option value="time">Isochrone (temps)</option>
+                        <option value="distance">Isodistance</option>
+                    </select>
+                </div>
+
+                <div class="constraint-group">
+                    <label class="constraint-label">Sens de parcours :</label>
+                    <select id="direction-mode" class="constraint-input">
+                        <option value="departure">Depuis le point</option>
+                        <option value="arrival">Vers le point</option>
+                    </select>
+                </div>
+
+                <div class="constraint-group">
+                    <label class="constraint-label">
+                        <span id="cost-label">Durée</span> :
+                    </label>
+                    <div class="constraint-input">
+                        <input type="number" id="cost-value" value="10" min="1">
+                        <select id="time-unit" class="unit-select">
+                            <option value="min">min</option>
+                            <option value="sec">sec</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="constraint-group">
+                    <label class="constraint-label">Contraintes (exclure) :</label>
+                    <div class="checkbox-group">
+                        <label class="constraint-label">
+                            <input type="checkbox" id="avoid-tolls" class="constraint-checkbox">
+                            <span class="checkmark"></span>
+                            Péages
+                        </label>
+                        <label class="constraint-label">
+                            <input type="checkbox" id="avoid-tunnels" class="constraint-checkbox">
+                            <span class="checkmark"></span>
+                            Tunnels
+                        </label>
+                        <label class="constraint-label">
+                            <input type="checkbox" id="avoid-bridges" class="constraint-checkbox">
+                            <span class="checkmark"></span>
+                            Ponts
+                        </label>
+                    </div>
+                </div>
+
+                <div class="panel-controls">
+                    <button class="btn-small btn-secondary" id="cancel-isochrone">
+                        <i class="iconoir-xmark-square"></i>
+                        Annuler
+                    </button>
+                    <button class="btn-small btn-primary" id="calculate-isochrone" disabled>
+                        <i class="iconoir-timer"></i>
+                        Calculer
+                    </button>
+                </div>
+
+                <div class="constraint-info">
+                    <div class="info-row">
+                        <kbd>Clic</kbd> placer point | <kbd>Reclic</kbd> déplacer
+                    </div>
+                    <div class="info-row">
+                        <kbd>Échap</kbd> annuler
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+        <div class="footer-content">
+            <span class="footer-text">Réalisé avec ❤️ par Degun @ oscarzulu</span>
+            <div class="footer-center">
+                <button class="file-btn" id="import-btn">
+                    <i class="iconoir-import"></i>
+                    Importer
+                </button>
+                <button class="file-btn" id="export-btn">
+                    <i class="iconoir-floppy-disk"></i>
+                    Exporter
+                </button>
+                <button class="file-btn clear-btn" id="clear-storage-btn" title="Vider le localStorage">
+                    <i class="iconoir-trash"></i>
+                    Purger
+                </button>
+            </div>
+            <div class="footer-links">
+                <a href="https://github.com/degun-osint/rhinomap" target="_blank" class="footer-link">
+                    <i class="iconoir-github-circle"></i>
+                    GitHub
+                </a>
+                <a href='https://ko-fi.com/D1D11CYJEY' target='_blank' class="footer-link">
+                    <img height='20' style='border:0px;height:20px;' src='https://storage.ko-fi.com/cdn/kofi1.png?v=6' border='0' alt='Buy Me a Coffee at ko-fi.com' />
+                </a>
+            </div>
+        </div>
+    </footer>
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
