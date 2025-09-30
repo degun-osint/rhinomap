@@ -336,10 +336,19 @@
                     <i class="iconoir-import"></i>
                     Importer
                 </button>
-                <button class="file-btn" id="export-btn">
-                    <i class="iconoir-floppy-disk"></i>
-                    Exporter
-                </button>
+                <div class="export-dropdown">
+                    <button class="file-btn" id="export-btn">
+                        <i class="iconoir-floppy-disk"></i>
+                        Exporter
+                        <i class="iconoir-nav-arrow-down" style="font-size: 10px; margin-left: 4px;"></i>
+                    </button>
+                    <div class="export-menu hidden" id="export-menu">
+                        <button class="export-option" data-format="json">JSON (réimportable)</button>
+                        <button class="export-option" data-format="geojson">GeoJSON (réimportable)</button>
+                        <button class="export-option" data-format="csv">CSV (points only)</button>
+                        <button class="export-option" data-format="kml">KML (Google Earth)</button>
+                    </div>
+                </div>
                 <button class="file-btn clear-btn" id="clear-storage-btn" title="Vider le localStorage">
                     <i class="iconoir-trash"></i>
                     Purger

@@ -102,8 +102,24 @@ class RhinoMapToolbox {
 
         // Import/Export
         document.getElementById('import-btn').addEventListener('click', () => this.importData());
-        document.getElementById('export-btn').addEventListener('click', () => this.exportData());
+        document.getElementById('export-btn').addEventListener('click', (e) => this.toggleExportMenu(e));
         document.getElementById('clear-storage-btn').addEventListener('click', () => this.clearLocalStorage());
+
+        // Export menu options
+        document.querySelectorAll('.export-option').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const format = e.target.dataset.format;
+                this.exportData(format);
+                this.hideExportMenu();
+            });
+        });
+
+        // Fermer le menu export si on clique ailleurs
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.export-dropdown')) {
+                this.hideExportMenu();
+            }
+        });
 
         // Search
         document.getElementById('search-btn').addEventListener('click', () => this.performSearch());
@@ -194,7 +210,28 @@ class RhinoMapToolbox {
             isochronePanel.classList.add('hidden');
         }
 
+        // Changer le curseur de la carte en crosshair pour les outils de dessin
+        const mapContainer = document.getElementById('map');
+        mapContainer.style.cursor = 'crosshair';
+
         this.updateInfo(this.getCurrentToolName(), this.getCurrentToolDescription());
+    }
+
+    deselectTool() {
+        // Désactiver tous les outils
+        document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+        this.currentTool = null;
+
+        // Remettre le curseur par défaut
+        const mapContainer = document.getElementById('map');
+        mapContainer.style.cursor = '';
+
+        // Masquer tous les panneaux
+        document.getElementById('constraints-panel').classList.add('hidden');
+        document.getElementById('isochrone-panel').classList.add('hidden');
+        document.getElementById('constraints-tool').style.display = 'none';
+
+        this.updateInfo('Mode déplacement', 'Vous pouvez maintenant déplacer les points et interagir avec les éléments');
     }
 
     switchLayer(layer) {
@@ -299,7 +336,7 @@ class RhinoMapToolbox {
             .setContent(`
                 <strong>Tracé terminé</strong><br>
                 Segments: ${segmentCount}<br>
-                Distance totale: ${totalDistance.toFixed(2)} m<br>
+                Distance totale: ${this.formatDistance(totalDistance)}<br>
                 Points: ${this.currentLine.points.length}
             `)
             .openOn(this.map);
@@ -319,7 +356,10 @@ class RhinoMapToolbox {
         this.resetConstraints();
         this.hidePanel();
 
-        this.updateInfo('Tracé terminé', `${segmentCount} segments, ${totalDistance.toFixed(2)}m total`);
+        // Désélectionner l'outil pour revenir en mode déplacement
+        this.deselectTool();
+
+        this.updateInfo('Tracé terminé', `${segmentCount} segments, ${this.formatDistance(totalDistance)} total`);
     }
 
     createSegment(startPoint, endPoint) {
@@ -344,7 +384,7 @@ class RhinoMapToolbox {
             className: 'segment-label'
         })
         .setLatLng(midpoint)
-        .setContent(`${segment.distance.toFixed(1)}m<br>${segment.azimuth.toFixed(0)}°`)
+        .setContent(`${this.formatDistance(segment.distance)}<br>${segment.azimuth.toFixed(0)}°`)
         .addTo(this.map);
 
         this.currentLine.segmentLabels.push(label);
@@ -655,7 +695,7 @@ class RhinoMapToolbox {
 
             const totalDistance = this.calculateTotalDistance();
             this.updateInfo('Segment ajouté',
-                `${this.currentLine.segments.length} segments | Total: ${totalDistance.toFixed(2)}m | Ctrl+clic pour terminer`);
+                `${this.currentLine.segments.length} segments | Total: ${this.formatDistance(totalDistance)} | Ctrl+clic pour terminer`);
 
             // Mettre à jour les statistiques du panneau
             this.updatePanelStats();
@@ -775,14 +815,14 @@ class RhinoMapToolbox {
     }
 
     getConstrainedTooltipContent(distance, azimuth) {
-        let content = `${distance.toFixed(2)}m - ${azimuth.toFixed(1)}°`;
+        let content = `${this.formatDistance(distance)} - ${azimuth.toFixed(1)}°`;
 
         if (this.constraints.distanceLocked || this.constraints.azimuthLocked) {
             content += ' 🔒';
         }
 
         if (this.constraints.distanceLocked) {
-            content += ` | D: ${this.constraints.lockedDistance}m`;
+            content += ` | D: ${this.formatDistance(this.constraints.lockedDistance)}`;
         }
 
         if (this.constraints.azimuthLocked) {
@@ -826,14 +866,14 @@ class RhinoMapToolbox {
                     if (this.radiusTooltip) {
                         this.radiusTooltip
                             .setLatLng(e.latlng)
-                            .setContent(`Rayon: ${radius.toFixed(1)}m<br>Superficie: ${(Math.PI * radius * radius / 10000).toFixed(3)} ha`);
+                            .setContent(`Rayon: ${this.formatDistance(radius)}<br>Superficie: ${this.formatArea(Math.PI * radius * radius)}`);
                     } else {
                         this.radiusTooltip = L.tooltip({
                             permanent: true,
                             className: 'measurement-tooltip fade-in'
                         })
                         .setLatLng(e.latlng)
-                        .setContent(`Rayon: ${radius.toFixed(1)}m<br>Superficie: ${(Math.PI * radius * radius / 10000).toFixed(3)} ha`)
+                        .setContent(`Rayon: ${this.formatDistance(radius)}<br>Superficie: ${this.formatArea(Math.PI * radius * radius)}`)
                         .addTo(this.map);
                     }
                 }
@@ -853,8 +893,8 @@ class RhinoMapToolbox {
 
                 finalCircle.bindPopup(`
                     <strong>Cercle de mesure</strong><br>
-                    Rayon: ${radius.toFixed(2)} m<br>
-                    Superficie: ${(Math.PI * radius * radius / 10000).toFixed(2)} ha
+                    Rayon: ${this.formatDistance(radius)}<br>
+                    Superficie: ${this.formatArea(Math.PI * radius * radius)}
                 `);
 
                 // Retirer le point du centre des éléments temporaires pour qu'il ne soit pas supprimé
@@ -863,13 +903,21 @@ class RhinoMapToolbox {
                 const labelIndex = this.tempElements.indexOf(this.currentCenterPointData.label);
                 if (labelIndex > -1) this.tempElements.splice(labelIndex, 1);
 
-                this.data.circles.push({
+                const circleData = {
                     id: Date.now(),
                     center: this.circleCenter,
                     radius: radius,
                     circle: finalCircle,
                     centerPoint: this.currentCenterPointData
+                };
+
+                // Menu contextuel sur le cercle
+                finalCircle.on('contextmenu', (e) => {
+                    e.originalEvent.preventDefault();
+                    this.showContextMenu(e.originalEvent.clientX, e.originalEvent.clientY, circleData, 'circle');
                 });
+
+                this.data.circles.push(circleData);
                 this.saveToLocalStorage();
 
                 // Nettoyer
@@ -882,7 +930,10 @@ class RhinoMapToolbox {
                 this.map.off('click', onMapClick);
                 this.isDrawing = false;
 
-                this.updateInfo('Cercle créé', `Rayon: ${radius.toFixed(2)}m`);
+                // Désélectionner l'outil pour revenir en mode déplacement
+                this.deselectTool();
+
+                this.updateInfo('Cercle créé', `Rayon: ${this.formatDistance(radius)}`);
             };
 
             this.map.on('mousemove', onMouseMove);
@@ -962,18 +1013,25 @@ class RhinoMapToolbox {
         polygon.bindPopup(`
             <strong>Polygone</strong><br>
             Points: ${this.currentPolygon.points.length}<br>
-            Aire: ${area.toFixed(2)} m²<br>
-            Périmètre: ${perimeter.toFixed(2)} m<br>
-            Aire (ha): ${(area / 10000).toFixed(3)} ha
+            Aire: ${this.formatArea(area)}<br>
+            Périmètre: ${this.formatDistance(perimeter)}
         `);
 
-        // Sauvegarder
-        this.data.polygons.push({
+        const polygonData = {
             ...this.currentPolygon,
             polygon: polygon,
             area: area,
             perimeter: perimeter
+        };
+
+        // Menu contextuel sur le polygone
+        polygon.on('contextmenu', (e) => {
+            e.originalEvent.preventDefault();
+            this.showContextMenu(e.originalEvent.clientX, e.originalEvent.clientY, polygonData, 'polygon');
         });
+
+        // Sauvegarder
+        this.data.polygons.push(polygonData);
         this.saveToLocalStorage();
 
         // Nettoyer
@@ -985,8 +1043,10 @@ class RhinoMapToolbox {
         this.isDrawing = false;
         this.currentPolygon = null;
 
-        this.updateInfo('Polygone terminé',
-            `Aire: ${area.toFixed(2)} m² (${(area / 10000).toFixed(3)} ha)`);
+        // Désélectionner l'outil pour revenir en mode déplacement
+        this.deselectTool();
+
+        this.updateInfo('Polygone terminé', `Aire: ${this.formatArea(area)}`);
     }
 
     calculatePolygonArea(points) {
@@ -1019,6 +1079,20 @@ class RhinoMapToolbox {
 
     calculateDistance(latlng1, latlng2) {
         return this.map.distance(latlng1, latlng2);
+    }
+
+    formatDistance(meters) {
+        if (meters >= 1000) {
+            return `${(meters / 1000).toFixed(2)} km`;
+        }
+        return `${meters.toFixed(2)} m`;
+    }
+
+    formatArea(squareMeters) {
+        if (squareMeters >= 10000) {
+            return `${(squareMeters / 10000).toFixed(3)} ha`;
+        }
+        return `${squareMeters.toFixed(2)} m²`;
     }
 
     calculateAzimuth(latlng1, latlng2) {
@@ -1112,12 +1186,26 @@ class RhinoMapToolbox {
             if (this.currentLine.segmentLabels) {
                 this.currentLine.segmentLabels.forEach(label => this.map.removeLayer(label));
             }
+            // Supprimer les points renommables du tracé en cours
+            if (this.currentLine.pointData) {
+                this.currentLine.pointData.forEach(pointData => {
+                    if (pointData.marker) this.map.removeLayer(pointData.marker);
+                    if (pointData.label) this.map.removeLayer(pointData.label);
+                });
+            }
         }
 
         // Nettoyer le polygone en cours
         if (this.currentPolygon) {
             if (this.currentPolygon.markers) {
                 this.currentPolygon.markers.forEach(marker => this.map.removeLayer(marker));
+            }
+            // Supprimer les points renommables du polygone en cours
+            if (this.currentPolygon.pointData) {
+                this.currentPolygon.pointData.forEach(pointData => {
+                    if (pointData.marker) this.map.removeLayer(pointData.marker);
+                    if (pointData.label) this.map.removeLayer(pointData.label);
+                });
             }
             if (this.tempPolygonPreview) {
                 this.map.removeLayer(this.tempPolygonPreview);
@@ -1157,7 +1245,7 @@ class RhinoMapToolbox {
         });
     }
 
-    clearAll() {
+    clearAll(skipSave = false) {
         // Supprimer tous les éléments de la carte
         const allItems = [...this.data.points, ...this.data.lines, ...this.data.circles, ...this.data.polygons];
         if (this.data.isochrones) {
@@ -1195,6 +1283,13 @@ class RhinoMapToolbox {
             if (item.label) this.map.removeLayer(item.label);
         });
 
+        // Supprimer tous les tooltips/labels restants (sécurité)
+        this.map.eachLayer((layer) => {
+            if (layer instanceof L.Tooltip) {
+                this.map.removeLayer(layer);
+            }
+        });
+
         // Vider les données
         this.data = {
             points: [],
@@ -1214,6 +1309,11 @@ class RhinoMapToolbox {
             this.isochroneMarker = null;
         }
 
+        // Sauvegarder l'état vide dans localStorage (sauf si skipSave est true)
+        if (!skipSave) {
+            this.saveToLocalStorage();
+        }
+
         // Reset du panneau isochrone
         document.getElementById('isochrone-panel').classList.add('hidden');
         document.getElementById('isochrone-point-info').textContent = 'Cliquez sur la carte pour placer le point de départ';
@@ -1224,7 +1324,36 @@ class RhinoMapToolbox {
         this.updateInfo('Carte effacée', 'Tous les éléments ont été supprimés');
     }
 
-    exportData() {
+    toggleExportMenu(e) {
+        e.stopPropagation();
+        const menu = document.getElementById('export-menu');
+        menu.classList.toggle('hidden');
+    }
+
+    hideExportMenu() {
+        document.getElementById('export-menu').classList.add('hidden');
+    }
+
+    exportData(format = 'json') {
+        const timestamp = new Date().getTime();
+
+        switch(format) {
+            case 'json':
+                this.exportJSON(timestamp);
+                break;
+            case 'csv':
+                this.exportCSV(timestamp);
+                break;
+            case 'geojson':
+                this.exportGeoJSON(timestamp);
+                break;
+            case 'kml':
+                this.exportKML(timestamp);
+                break;
+        }
+    }
+
+    exportJSON(timestamp) {
         const exportData = {
             timestamp: new Date().toISOString(),
             version: "1.0",
@@ -1303,19 +1432,273 @@ class RhinoMapToolbox {
             type: 'application/json'
         });
 
+        this.downloadFile(blob, `rhinomap_${timestamp}.json`);
+        this.updateInfo('Export JSON terminé', 'Fichier sauvegardé');
+        this.saveToLocalStorage();
+    }
+
+    exportCSV(timestamp) {
+        // CSV avec tous les points (autonomes + lignes + cercles + polygones)
+        let csv = 'Type,Nom,Latitude,Longitude,Informations\n';
+
+        // Points autonomes
+        this.data.points.forEach(p => {
+            csv += `Point,"${p.name}",${p.latlng.lat},${p.latlng.lng},-\n`;
+        });
+
+        // Points des lignes
+        this.data.lines.forEach((line, idx) => {
+            if (line.pointData) {
+                line.pointData.forEach(pd => {
+                    csv += `Ligne ${idx + 1},"${pd.name}",${pd.latlng.lat},${pd.latlng.lng},"Distance totale: ${line.totalDistance?.toFixed(2)}m"\n`;
+                });
+            }
+        });
+
+        // Centres des cercles
+        this.data.circles.forEach((circle, idx) => {
+            if (circle.centerPoint) {
+                csv += `Cercle ${idx + 1},"${circle.centerPoint.name}",${circle.centerPoint.latlng.lat},${circle.centerPoint.latlng.lng},"Rayon: ${circle.radius.toFixed(2)}m"\n`;
+            }
+        });
+
+        // Points des polygones
+        this.data.polygons.forEach((poly, idx) => {
+            if (poly.pointData) {
+                poly.pointData.forEach(pd => {
+                    csv += `Polygone ${idx + 1},"${pd.name}",${pd.latlng.lat},${pd.latlng.lng},"Aire: ${poly.area?.toFixed(2)}m²"\n`;
+                });
+            }
+        });
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        this.downloadFile(blob, `rhinomap_${timestamp}.csv`);
+        this.updateInfo('Export CSV terminé', 'Points exportés');
+    }
+
+    exportGeoJSON(timestamp) {
+        const features = [];
+
+        // Points autonomes
+        this.data.points.forEach(p => {
+            features.push({
+                type: 'Feature',
+                properties: {
+                    name: p.name,
+                    type: 'point'
+                },
+                geometry: {
+                    type: 'Point',
+                    coordinates: [p.latlng.lng, p.latlng.lat]
+                }
+            });
+        });
+
+        // Lignes
+        this.data.lines.forEach(line => {
+            features.push({
+                type: 'Feature',
+                properties: {
+                    type: 'line',
+                    totalDistance: line.totalDistance,
+                    segments: line.segments?.length || 0
+                },
+                geometry: {
+                    type: 'LineString',
+                    coordinates: line.points.map(p => [p.lng, p.lat])
+                }
+            });
+        });
+
+        // Cercles (comme polygones)
+        this.data.circles.forEach(circle => {
+            const center = circle.center;
+            const radius = circle.radius;
+            const points = 64;
+            const coordinates = [];
+
+            for (let i = 0; i <= points; i++) {
+                const angle = (i * 360 / points) * Math.PI / 180;
+                const dx = radius * Math.cos(angle) / 111320;
+                const dy = radius * Math.sin(angle) / (111320 * Math.cos(center.lat * Math.PI / 180));
+                coordinates.push([center.lng + dx, center.lat + dy]);
+            }
+
+            features.push({
+                type: 'Feature',
+                properties: {
+                    type: 'circle',
+                    radius: radius,
+                    centerName: circle.centerPoint?.name || 'Centre'
+                },
+                geometry: {
+                    type: 'Polygon',
+                    coordinates: [coordinates]
+                }
+            });
+        });
+
+        // Polygones
+        this.data.polygons.forEach(poly => {
+            const coords = poly.points.map(p => [p.lng, p.lat]);
+            coords.push(coords[0]); // Fermer le polygone
+
+            features.push({
+                type: 'Feature',
+                properties: {
+                    type: 'polygon',
+                    area: poly.area,
+                    perimeter: poly.perimeter
+                },
+                geometry: {
+                    type: 'Polygon',
+                    coordinates: [coords]
+                }
+            });
+        });
+
+        // Isochrones
+        if (this.data.isochrones) {
+            this.data.isochrones.forEach(iso => {
+                if (iso.coordinates && iso.coordinates.length > 0) {
+                    const coords = iso.coordinates.map(c => [c.lng, c.lat]);
+                    coords.push(coords[0]);
+
+                    features.push({
+                        type: 'Feature',
+                        properties: {
+                            type: 'isochrone',
+                            name: iso.name,
+                            mode: iso.mode,
+                            calcMode: iso.calcMode,
+                            cost: iso.cost
+                        },
+                        geometry: {
+                            type: 'Polygon',
+                            coordinates: [coords]
+                        }
+                    });
+                }
+            });
+        }
+
+        const geojson = {
+            type: 'FeatureCollection',
+            features: features
+        };
+
+        const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/json' });
+        this.downloadFile(blob, `rhinomap_${timestamp}.geojson`);
+        this.updateInfo('Export GeoJSON terminé', 'Fichier sauvegardé');
+    }
+
+    exportKML(timestamp) {
+        let kml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+        kml += '<kml xmlns="http://www.opengis.net/kml/2.2">\n';
+        kml += '<Document>\n';
+        kml += '<name>RhinoMap Export</name>\n';
+        kml += '<description>Export depuis RhinoMapToolbox</description>\n\n';
+
+        // Points autonomes
+        this.data.points.forEach(p => {
+            kml += '<Placemark>\n';
+            kml += `  <name>${this.escapeXML(p.name)}</name>\n`;
+            kml += '  <Point>\n';
+            kml += `    <coordinates>${p.latlng.lng},${p.latlng.lat},0</coordinates>\n`;
+            kml += '  </Point>\n';
+            kml += '</Placemark>\n\n';
+        });
+
+        // Lignes
+        this.data.lines.forEach((line, idx) => {
+            kml += '<Placemark>\n';
+            kml += `  <name>Ligne ${idx + 1}</name>\n`;
+            kml += `  <description>Distance totale: ${line.totalDistance?.toFixed(2)}m</description>\n`;
+            kml += '  <LineString>\n';
+            kml += '    <coordinates>\n';
+            line.points.forEach(p => {
+                kml += `      ${p.lng},${p.lat},0\n`;
+            });
+            kml += '    </coordinates>\n';
+            kml += '  </LineString>\n';
+            kml += '</Placemark>\n\n';
+        });
+
+        // Polygones
+        this.data.polygons.forEach((poly, idx) => {
+            kml += '<Placemark>\n';
+            kml += `  <name>Polygone ${idx + 1}</name>\n`;
+            kml += `  <description>Aire: ${poly.area?.toFixed(2)}m²</description>\n`;
+            kml += '  <Polygon>\n';
+            kml += '    <outerBoundaryIs>\n';
+            kml += '      <LinearRing>\n';
+            kml += '        <coordinates>\n';
+            poly.points.forEach(p => {
+                kml += `          ${p.lng},${p.lat},0\n`;
+            });
+            // Fermer le polygone
+            kml += `          ${poly.points[0].lng},${poly.points[0].lat},0\n`;
+            kml += '        </coordinates>\n';
+            kml += '      </LinearRing>\n';
+            kml += '    </outerBoundaryIs>\n';
+            kml += '  </Polygon>\n';
+            kml += '</Placemark>\n\n';
+        });
+
+        // Isochrones
+        if (this.data.isochrones) {
+            this.data.isochrones.forEach((iso, idx) => {
+                if (iso.coordinates && iso.coordinates.length > 0) {
+                    kml += '<Placemark>\n';
+                    kml += `  <name>${this.escapeXML(iso.name || `Isochrone ${idx + 1}`)}</name>\n`;
+                    kml += `  <description>Mode: ${iso.mode}, ${iso.calcMode}</description>\n`;
+                    kml += '  <Polygon>\n';
+                    kml += '    <outerBoundaryIs>\n';
+                    kml += '      <LinearRing>\n';
+                    kml += '        <coordinates>\n';
+                    iso.coordinates.forEach(c => {
+                        kml += `          ${c.lng},${c.lat},0\n`;
+                    });
+                    // Fermer le polygone
+                    kml += `          ${iso.coordinates[0].lng},${iso.coordinates[0].lat},0\n`;
+                    kml += '        </coordinates>\n';
+                    kml += '      </LinearRing>\n';
+                    kml += '    </outerBoundaryIs>\n';
+                    kml += '  </Polygon>\n';
+                    kml += '</Placemark>\n\n';
+                }
+            });
+        }
+
+        kml += '</Document>\n';
+        kml += '</kml>';
+
+        const blob = new Blob([kml], { type: 'application/vnd.google-earth.kml+xml' });
+        this.downloadFile(blob, `rhinomap_${timestamp}.kml`);
+        this.updateInfo('Export KML terminé', 'Fichier sauvegardé');
+    }
+
+    escapeXML(text) {
+        return text.replace(/[<>&'"]/g, (c) => {
+            switch (c) {
+                case '<': return '&lt;';
+                case '>': return '&gt;';
+                case '&': return '&amp;';
+                case "'": return '&apos;';
+                case '"': return '&quot;';
+            }
+        });
+    }
+
+    downloadFile(blob, filename) {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `rhinomap_${new Date().getTime()}.json`;
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-
-        this.updateInfo('Export terminé', 'Fichier JSON sauvegardé');
-
-        // Sauvegarder aussi dans localStorage
-        this.saveToLocalStorage();
     }
 
     saveToLocalStorage() {
@@ -1443,8 +1826,19 @@ class RhinoMapToolbox {
         reader.onload = (e) => {
             try {
                 const importedData = JSON.parse(e.target.result);
-                this.restoreData(importedData);
-                this.updateInfo('Import terminé', 'Données restaurées avec succès');
+
+                // Détecter le format (GeoJSON ou JSON RhinoMap)
+                if (importedData.type === 'FeatureCollection') {
+                    // Format GeoJSON
+                    this.importGeoJSON(importedData);
+                    this.updateInfo('Import GeoJSON terminé', 'Données restaurées avec succès');
+                } else if (importedData.data) {
+                    // Format JSON RhinoMap
+                    this.restoreData(importedData);
+                    this.updateInfo('Import JSON terminé', 'Données restaurées avec succès');
+                } else {
+                    alert('Format de fichier non reconnu. Utilisez un fichier JSON ou GeoJSON exporté depuis RhinoMap.');
+                }
             } catch (error) {
                 alert('Erreur lors du chargement du fichier: ' + error.message);
             }
@@ -1452,8 +1846,174 @@ class RhinoMapToolbox {
         reader.readAsText(file);
     }
 
+    importGeoJSON(geojson) {
+        this.clearAll(true); // Ne pas sauvegarder l'état vide
+
+        geojson.features.forEach(feature => {
+            const props = feature.properties || {};
+            const geom = feature.geometry;
+
+            if (geom.type === 'Point') {
+                // Point
+                const [lng, lat] = geom.coordinates;
+                const name = props.name || 'Point importé';
+                this.createNamedPoint({ lat, lng }, name);
+            } else if (geom.type === 'LineString') {
+                // Ligne
+                const points = geom.coordinates.map(coord => ({
+                    lat: coord[1],
+                    lng: coord[0]
+                }));
+
+                if (points.length < 2) return;
+
+                const lineData = {
+                    id: Date.now() + Math.random(),
+                    points: points,
+                    segments: [],
+                    pointData: [],
+                    polylines: [],
+                    segmentLabels: [],
+                    totalDistance: 0
+                };
+
+                // Créer les points renommables
+                points.forEach((point, idx) => {
+                    const name = idx === 0 ? 'Début' : (idx === points.length - 1 ? 'Fin' : `Point ${idx + 1}`);
+                    const pointData = this.createRenameablePoint(point, name, 'line-point');
+                    lineData.pointData.push(pointData);
+                });
+
+                // Créer les segments
+                let totalDistance = 0;
+                for (let i = 0; i < points.length - 1; i++) {
+                    const start = points[i];
+                    const end = points[i + 1];
+
+                    const distance = this.calculateDistance(start, end);
+                    const azimuth = this.calculateAzimuth(start, end);
+
+                    lineData.segments.push({ distance, azimuth });
+                    totalDistance += distance;
+
+                    const polyline = L.polyline([start, end], {
+                        color: '#e74c3c',
+                        weight: 3
+                    }).addTo(this.map);
+
+                    lineData.polylines.push(polyline);
+
+                    // Label du segment
+                    const midpoint = this.calculateMidpoint(start, end);
+                    const label = L.tooltip({
+                        permanent: true,
+                        className: 'measurement-tooltip'
+                    })
+                    .setLatLng(midpoint)
+                    .setContent(`${this.formatDistance(distance)} | ${azimuth.toFixed(0)}°`)
+                    .addTo(this.map);
+
+                    lineData.segmentLabels.push(label);
+                }
+
+                lineData.totalDistance = totalDistance;
+                this.data.lines.push(lineData);
+
+            } else if (geom.type === 'Polygon') {
+                // Polygone ou Cercle
+                const coords = geom.coordinates[0].map(coord => ({
+                    lat: coord[1],
+                    lng: coord[0]
+                }));
+
+                if (props.type === 'circle') {
+                    // Cercle - recréer approximativement le centre
+                    const centerLat = coords.reduce((sum, c) => sum + c.lat, 0) / coords.length;
+                    const centerLng = coords.reduce((sum, c) => sum + c.lng, 0) / coords.length;
+                    const center = { lat: centerLat, lng: centerLng };
+                    const radius = props.radius || this.calculateDistance(center, coords[0]);
+
+                    const centerPoint = this.createRenameablePoint(center, props.centerName || 'Centre', 'circle-center');
+
+                    const circle = L.circle(center, {
+                        radius: radius,
+                        color: '#f39c12',
+                        fillColor: '#f39c12',
+                        fillOpacity: 0.2,
+                        weight: 2
+                    }).addTo(this.map);
+
+                    circle.bindPopup(`
+                        <strong>Cercle importé</strong><br>
+                        Rayon: ${this.formatDistance(radius)}<br>
+                        Superficie: ${this.formatArea(Math.PI * radius * radius)}
+                    `);
+
+                    const circleData = {
+                        id: Date.now() + Math.random(),
+                        center: center,
+                        radius: radius,
+                        circle: circle,
+                        centerPoint: centerPoint
+                    };
+
+                    circle.on('contextmenu', (e) => {
+                        e.originalEvent.preventDefault();
+                        this.showContextMenu(e.originalEvent.clientX, e.originalEvent.clientY, circleData, 'circle');
+                    });
+
+                    this.data.circles.push(circleData);
+
+                } else {
+                    // Polygone normal
+                    coords.pop(); // Retirer le dernier point (doublon pour fermer)
+
+                    const pointData = coords.map((point, idx) => {
+                        return this.createRenameablePoint(point, `Point ${idx + 1}`, 'polygon-point');
+                    });
+
+                    const polygon = L.polygon(coords, {
+                        color: '#9b59b6',
+                        fillColor: '#9b59b6',
+                        fillOpacity: 0.3,
+                        weight: 2
+                    }).addTo(this.map);
+
+                    const area = props.area || this.calculatePolygonArea(coords);
+                    const perimeter = props.perimeter || this.calculatePolygonPerimeter(coords);
+
+                    polygon.bindPopup(`
+                        <strong>${props.type === 'isochrone' ? 'Isochrone importée' : 'Polygone importé'}</strong><br>
+                        Points: ${coords.length}<br>
+                        Aire: ${this.formatArea(area)}<br>
+                        Périmètre: ${this.formatDistance(perimeter)}
+                    `);
+
+                    const polygonData = {
+                        id: Date.now() + Math.random(),
+                        points: coords,
+                        pointData: pointData,
+                        polygon: polygon,
+                        area: area,
+                        perimeter: perimeter
+                    };
+
+                    polygon.on('contextmenu', (e) => {
+                        e.originalEvent.preventDefault();
+                        this.showContextMenu(e.originalEvent.clientX, e.originalEvent.clientY, polygonData, 'polygon');
+                    });
+
+                    this.data.polygons.push(polygonData);
+                }
+            }
+        });
+
+        // Sauvegarder dans localStorage après import
+        this.saveToLocalStorage();
+    }
+
     restoreData(importedData) {
-        this.clearAll();
+        this.clearAll(true); // Ne pas sauvegarder l'état vide
 
         const data = importedData.data;
 
@@ -1551,13 +2111,21 @@ class RhinoMapToolbox {
                 Superficie: ${(Math.PI * circleData.radius * circleData.radius / 10000).toFixed(2)} ha
             `);
 
-            this.data.circles.push({
+            const restoredCircle = {
                 id: circleData.id,
                 center: center,
                 radius: circleData.radius,
                 circle: circle,
                 centerPoint: centerPoint
+            };
+
+            // Menu contextuel sur le cercle
+            circle.on('contextmenu', (e) => {
+                e.originalEvent.preventDefault();
+                this.showContextMenu(e.originalEvent.clientX, e.originalEvent.clientY, restoredCircle, 'circle');
             });
+
+            this.data.circles.push(restoredCircle);
         });
 
         // Restaurer les polygones
@@ -1594,14 +2162,22 @@ class RhinoMapToolbox {
                     Aire (ha): ${(polygonData.area / 10000).toFixed(3)} ha
                 `);
 
-                this.data.polygons.push({
+                const restoredPolygon = {
                     id: polygonData.id,
                     points: points,
                     pointData: pointData,
                     polygon: polygon,
                     area: polygonData.area,
                     perimeter: polygonData.perimeter
+                };
+
+                // Menu contextuel sur le polygone
+                polygon.on('contextmenu', (e) => {
+                    e.originalEvent.preventDefault();
+                    this.showContextMenu(e.originalEvent.clientX, e.originalEvent.clientY, restoredPolygon, 'polygon');
                 });
+
+                this.data.polygons.push(restoredPolygon);
             });
         }
 
@@ -1687,6 +2263,9 @@ class RhinoMapToolbox {
                 }
             });
         }
+
+        // Sauvegarder dans localStorage après avoir tout restauré
+        this.saveToLocalStorage();
     }
 
     updateCoordinates(latlng) {

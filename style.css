@@ -179,6 +179,43 @@ body {
     background: #e74c3c;
 }
 
+.export-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.export-menu {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    margin-bottom: 5px;
+    background: rgba(44, 62, 80, 0.98);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    padding: 4px;
+    min-width: 150px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 2000;
+}
+
+.export-option {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    background: transparent;
+    border: none;
+    color: #fff;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 12px;
+    transition: background 0.2s ease;
+}
+
+.export-option:hover {
+    background: rgba(52, 152, 219, 0.3);
+}
+
 .hidden {
     display: none;
 }
@@ -250,6 +287,15 @@ body {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
     text-align: center !important;
     line-height: 1.2 !important;
+}
+
+/* Curseur pointer pour éléments avec menu contextuel */
+.leaflet-interactive {
+    cursor: pointer !important;
+}
+
+.leaflet-marker-icon {
+    cursor: pointer !important;
 }
 
 /* Search container */
