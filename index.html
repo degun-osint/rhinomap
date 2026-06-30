@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RhinoMap Toolbox — Cartographie &amp; mesures (standalone)</title>
+
+    <link rel="icon" type="image/png" href="favicon.png">
+
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/iconoir-icons/iconoir@main/css/iconoir.css">
+
+    <link rel="stylesheet" href="modern-layout.css">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- i18n System (must be loaded first) -->
+    <script src="js/i18n.js"></script>
+
+</head>
+<body class="with-layout">
+
+    <div class="main-layout">
+        <!-- Tool Sidebar (Photoshop/Illustrator style) -->
+        <div class="tool-sidebar" id="toolSidebar">
+            <img src="favicon.png" alt="RhinoMap" title="RhinoMap Toolbox" style="width:30px;height:30px;display:block;margin:6px auto 2px;">
+
+            <button class="tool-sidebar-btn" data-tooltip="Import/Export Files" onclick="showSidebar('files')">
+                <i class="iconoir-floppy-disk"></i>
+            </button>
+
+            <div class="tool-sidebar-divider"></div>
+
+            <button id="pan-tool" class="tool-sidebar-btn active" data-tooltip="Pan Map (V)" onclick="selectTool('pan')">
+                <i class="iconoir-drag-hand-gesture"></i>
+            </button>
+
+            <div class="tool-sidebar-divider"></div>
+
+            <button id="point-tool" class="tool-sidebar-btn" data-tooltip="Named Points (P)" onclick="selectTool('point')">
+                <i class="iconoir-map-pin"></i>
+            </button>
+            <button id="line-tool" class="tool-sidebar-btn" data-tooltip="Measured Line (L)" onclick="selectTool('line')">
+                <i class="iconoir-ruler"></i>
+            </button>
+            <button id="circle-tool" class="tool-sidebar-btn" data-tooltip="Circle Area (C)" onclick="selectTool('circle')">
+                <i class="iconoir-circle"></i>
+            </button>
+            <button id="polygon-tool" class="tool-sidebar-btn" data-tooltip="Polygon Area (Shift+P)" onclick="selectTool('polygon')">
+                <i class="iconoir-pentagon"></i>
+            </button>
+            <button id="isochrone-tool" class="tool-sidebar-btn" data-tooltip="Isochrones (I)" onclick="selectTool('isochrone')">
+                <i class="iconoir-timer"></i>
+            </button>
+
+            <div class="tool-sidebar-divider"></div>
+
+            <button class="tool-sidebar-btn" data-tooltip="Toggle Layers Panel" onclick="toggleLayersSidebar()">
+                <i class="iconoir-apple-shortcuts"></i>
+            </button>
+
+            <div class="tool-sidebar-divider"></div>
+
+            <a class="tool-sidebar-btn" data-tooltip="Source code (GitHub)" href="https://github.com/degun-osint/rhinomap" target="_blank" rel="noopener">
+                <i class="iconoir-github"></i>
+            </a>
+
+        </div>
+
+        <div class="left-sidebar" id="leftSidebar">
+            <div class="sidebar-content">
+                <div class="sidebar-box" id="files-box" style="display: none;">
+                    <div class="box-header" onclick="toggleBox('files-box')">
+                        <h3 class="box-title">
+                            <i class="iconoir-folder"></i>
+                            Files
+                        </h3>
+                        <button class="box-toggle">
+                            <i class="iconoir-nav-arrow-up"></i>
+                        </button>
+                    </div>
+                    <div class="box-content">
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <button class="sidebar-btn" onclick="window.createNewLayer()" title="Create a new layer">
+                                <i class="iconoir-plus-circle"></i>
+                                <span>New Layer</span>
+                            </button>
+                            <div style="height: 1px; background: rgba(255,255,255,0.1); margin: 0.25rem 0;"></div>
+                            <button class="sidebar-btn" onclick="importData()" title="Import data from file">
+                                <i class="iconoir-import"></i>
+                                <span>Import</span>
+                            </button>
+                            <button class="sidebar-btn" onclick="exportData('json')" title="Export complete map with layers">
+                                <i class="iconoir-floppy-disk"></i>
+                                <span>Export JSON</span><small>(Rhinomap JSON)</small>
+                            </button>
+                            <button class="sidebar-btn" onclick="exportData('geojson')" title="Export for GIS software">
+                                <i class="iconoir-floppy-disk"></i>
+                                <span>Export GeoJSON</span>
+                            </button>
+                            <button class="sidebar-btn" onclick="exportData('csv')" title="Export as CSV">
+                                <i class="iconoir-floppy-disk"></i>
+                                <span>Export CSV</span>
+                            </button>
+                            <button class="sidebar-btn" onclick="exportData('kml')" title="Export as KML">
+                                <i class="iconoir-floppy-disk"></i>
+                                <span>Export KML</span>
+                            </button>
+                            <button class="sidebar-btn" onclick="showExportImageModal()" title="Export the map as a PNG image">
+                                <i class="iconoir-media-image"></i>
+                                <span>Export Image</span><small>(PNG)</small>
+                            </button>
+                            <div style="height: 1px; background: rgba(255,255,255,0.1); margin: 0.25rem 0;"></div>
+                            <button class="sidebar-btn danger" onclick="clearLocalStorage()" title="Clear all local storage">
+                                <i class="iconoir-trash"></i>
+                                <span>Clear Storage</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Line Constraints Box -->
+                <div class="sidebar-box" id="line-constraints-box" style="display: none;">
+                    <div class="box-header" onclick="toggleBox('line-constraints-box')">
+                        <h3 class="box-title">
+                            <i class="iconoir-settings"></i>
+                            Line Constraints
+                        </h3>
+                        <button class="box-toggle">
+                            <i class="iconoir-nav-arrow-up"></i>
+                        </button>
+                    </div>
+                    <div class="box-content">
+                        <!-- Distance Constraint -->
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; cursor: pointer;">
+                                <input type="checkbox" id="lock-distance-sidebar" style="cursor: pointer;">
+                                <span style="color: rgba(255,255,255,0.8); font-size: 0.85rem;">Lock Distance</span>
+                            </label>
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <input type="number" id="distance-value-sidebar" placeholder="meters" min="0" step="0.01" style="flex: 1; padding: 0.5rem; background: rgba(45, 55, 72, 0.8); border: 1px solid rgba(74, 85, 104, 0.5); border-radius: 6px; color: #e2e8f0; font-size: 0.9rem;">
+                                <span style="color: rgba(255,255,255,0.6); font-size: 0.85rem; min-width: 20px;">m</span>
+                            </div>
+                        </div>
+
+                        <!-- Azimuth Constraint -->
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; cursor: pointer;">
+                                <input type="checkbox" id="lock-azimuth-sidebar" style="cursor: pointer;">
+                                <span style="color: rgba(255,255,255,0.8); font-size: 0.85rem;">Lock Azimuth</span>
+                            </label>
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <input type="number" id="azimuth-value-sidebar" placeholder="degrees" min="0" max="360" step="0.1" style="flex: 1; padding: 0.5rem; background: rgba(45, 55, 72, 0.8); border: 1px solid rgba(74, 85, 104, 0.5); border-radius: 6px; color: #e2e8f0; font-size: 0.9rem;">
+                                <span style="color: rgba(255,255,255,0.6); font-size: 0.85rem; min-width: 20px;">°</span>
+                            </div>
+                        </div>
+
+                        <!-- Controls -->
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1.5rem;">
+                            <button class="btn-secondary" id="reset-constraints-sidebar" style="width: 100%;">
+                                <i class="iconoir-refresh"></i>
+                                Reset
+                            </button>
+                            <button class="btn-primary" id="finish-line-sidebar" style="width: 100%; display: none;">
+                                <i class="iconoir-check-circle"></i>
+                                Finish
+                            </button>
+                        </div>
+
+                        <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(255,255,255,0.05); border-radius: 6px; font-size: 0.75rem; color: rgba(255,255,255,0.6);">
+                            <div style="margin-bottom: 0.25rem;"><kbd style="padding: 0.15rem 0.4rem; background: rgba(0,0,0,0.3); border-radius: 3px;">Click</kbd> add segment | <kbd style="padding: 0.15rem 0.4rem; background: rgba(0,0,0,0.3); border-radius: 3px;">Right-click</kbd> finish</div>
+                            <div style="margin-bottom: 0.25rem;"><kbd style="padding: 0.15rem 0.4rem; background: rgba(0,0,0,0.3); border-radius: 3px;">Ctrl+Click</kbd> finish | <kbd style="padding: 0.15rem 0.4rem; background: rgba(0,0,0,0.3); border-radius: 3px;">Esc</kbd> cancel</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Isochrone Settings Box -->
+                <div class="sidebar-box" id="isochrone-settings-box" style="display: none;">
+                    <div class="box-header" onclick="toggleBox('isochrone-settings-box')">
+                        <h3 class="box-title">
+                            <i class="iconoir-timer"></i>
+                            Isochrone Settings
+                        </h3>
+                        <button class="box-toggle">
+                            <i class="iconoir-nav-arrow-up"></i>
+                        </button>
+                    </div>
+                    <div class="box-content">
+                        <div style="margin-bottom: 1rem; padding: 0.75rem; background: rgba(242, 68, 29, 0.1); border: 1px solid rgba(242, 68, 29, 0.3); border-radius: 6px;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; color: rgba(255,255,255,0.9); font-size: 0.85rem;">
+                                <i class="iconoir-map-pin"></i>
+                                <span id="isochrone-point-info-sidebar">Click on map to place starting point</span>
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; color: rgba(255,255,255,0.8); font-size: 0.85rem;">
+                                Transport Mode
+                            </label>
+                            <select id="transport-mode-sidebar" style="width: 100%; padding: 0.5rem; background: rgba(45, 55, 72, 0.8); border: 1px solid rgba(74, 85, 104, 0.5); border-radius: 6px; color: #e2e8f0; font-size: 0.9rem;">
+                                <option value="car">Car</option>
+                                <option value="pedestrian">Pedestrian</option>
+                            </select>
+                        </div>
+
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; color: rgba(255,255,255,0.8); font-size: 0.85rem;">
+                                Calculation Mode
+                            </label>
+                            <select id="calc-mode-sidebar" style="width: 100%; padding: 0.5rem; background: rgba(45, 55, 72, 0.8); border: 1px solid rgba(74, 85, 104, 0.5); border-radius: 6px; color: #e2e8f0; font-size: 0.9rem;">
+                                <option value="time">Isochrone (time)</option>
+                                <option value="distance">Isodistance</option>
+                            </select>
+                        </div>
+
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; color: rgba(255,255,255,0.8); font-size: 0.85rem;">
+                                Direction
+                            </label>
+                            <select id="direction-mode-sidebar" style="width: 100%; padding: 0.5rem; background: rgba(45, 55, 72, 0.8); border: 1px solid rgba(74, 85, 104, 0.5); border-radius: 6px; color: #e2e8f0; font-size: 0.9rem;">
+                                <option value="departure">From point</option>
+                                <option value="arrival">To point</option>
+                            </select>
+                        </div>
+
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; color: rgba(255,255,255,0.8); font-size: 0.85rem;">
+                                <span id="cost-label-sidebar">Duration</span>
+                            </label>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <input type="number" id="cost-value-sidebar" value="10" min="1" style="flex: 1; padding: 0.5rem; background: rgba(45, 55, 72, 0.8); border: 1px solid rgba(74, 85, 104, 0.5); border-radius: 6px; color: #e2e8f0; font-size: 0.9rem;">
+                                <select id="time-unit-sidebar" style="padding: 0.5rem; background: rgba(45, 55, 72, 0.8); border: 1px solid rgba(74, 85, 104, 0.5); border-radius: 6px; color: #e2e8f0; font-size: 0.9rem;">
+                                    <option value="min">min</option>
+                                    <option value="sec">sec</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.75rem; color: rgba(255,255,255,0.8); font-size: 0.85rem;">
+                                Constraints (avoid)
+                            </label>
+                            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.9rem; color: rgba(255,255,255,0.8);">
+                                    <input type="checkbox" id="avoid-tolls-sidebar" style="cursor: pointer;">
+                                    <span>Tolls</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.9rem; color: rgba(255,255,255,0.8);">
+                                    <input type="checkbox" id="avoid-tunnels-sidebar" style="cursor: pointer;">
+                                    <span>Tunnels</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.9rem; color: rgba(255,255,255,0.8);">
+                                    <input type="checkbox" id="avoid-bridges-sidebar" style="cursor: pointer;">
+                                    <span>Bridges</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1.5rem;">
+                            <button class="btn-primary" id="calculate-isochrone-sidebar" disabled style="width: 100%;">
+                                <i class="iconoir-timer"></i>
+                                Calculate
+                            </button>
+                            <button class="btn-secondary" id="cancel-isochrone-sidebar" style="width: 100%;">
+                                <i class="iconoir-xmark-square"></i>
+                                Cancel
+                            </button>
+                        </div>
+
+                        <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(255,255,255,0.05); border-radius: 6px; font-size: 0.75rem; color: rgba(255,255,255,0.6);">
+                            <div style="margin-bottom: 0.25rem;"><kbd style="padding: 0.15rem 0.4rem; background: rgba(0,0,0,0.3); border-radius: 3px;">Click</kbd> place point | <kbd style="padding: 0.15rem 0.4rem; background: rgba(0,0,0,0.3); border-radius: 3px;">Re-click</kbd> move</div>
+                            <div><kbd style="padding: 0.15rem 0.4rem; background: rgba(0,0,0,0.3); border-radius: 3px;">Esc</kbd> cancel</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map Container -->
+        <div class="map-container">
+            <div id="map"></div>
+
+            <!-- Constraints Tool Button (appears when drawing lines) -->
+            <button class="tool-btn" id="constraints-tool" title="Contraintes de tracé (Ctrl+L)" style="display: none; position: absolute; top: 1rem; right: 1rem; z-index: 1000; background: rgba(0,0,0,0.8); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 0.5rem; border-radius: 4px;">
+                <i class="iconoir-settings"></i>
+            </button>
+
+            <!-- Map Layer Controls -->
+            <div class="map-layer-controls">
+                <button class="map-layer-btn active" id="map-layer" title="Map View">
+                    <i class="iconoir-map"></i>
+                </button>
+                <button class="map-layer-btn" id="satellite-layer" title="Satellite View">
+                    <i class="iconoir-globe"></i>
+                </button>
+                <button class="map-layer-btn" id="3d-layer" title="3D View">
+                    <i class="iconoir-cube"></i>
+                </button>
+            </div>
+
+            <!-- Coordinates Display -->
+            <div class="coordinates-display" id="coordinates">
+                Lat: 0.000000, Lng: 0.000000
+            </div>
+
+            <!-- Search Box -->
+            <div class="search-container">
+                <div class="search-box">
+                    <input type="text" id="search-input" placeholder="Search for a place..." />
+                    <button id="search-btn">
+                        <i class="iconoir-search"></i>
+                    </button>
+                </div>
+                <div id="search-results" class="search-results hidden"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden file input -->
+    <input type="file" id="file-input" accept=".json,.geojson,.kml,.csv" style="display: none;">
+
+    <!-- Point Name Modal -->
+    <div id="point-name-modal" class="simple-modal hidden">
+        <div class="simple-modal-content">
+            <h3 id="modal-title">Name the Point</h3>
+            <input type="text" id="point-name-input" placeholder="Point name" maxlength="30">
+            <div class="simple-modal-buttons">
+                <button class="btn-secondary" id="cancel-point">Cancel</button>
+                <button class="btn-primary" id="confirm-point">Confirm</button>
+            </div>
+        </div>
+    </div>
+    <div id="simple-modal-overlay" class="simple-modal-overlay hidden"></div>
+
+    <!-- Toggle Tab for Layers Sidebar (always visible) -->
+    <button class="layers-sidebar-toggle-tab" onclick="toggleLayersSidebar()" data-tooltip="Toggle Layers Panel">
+        <i class="iconoir-sidebar-expand"></i>
+    </button>
+
+    <!-- Right Layers Sidebar (Collapsible) -->
+    <div class="layers-sidebar" id="layersSidebar">
+        <div class="layers-sidebar-header">
+            <h3 class="layers-sidebar-title" data-i18n="layers_panel_title">Layers</h3>
+            <button class="layers-sidebar-close" onclick="toggleLayersSidebar()" title="Close layers panel">
+                <i class="iconoir-xmark"></i>
+            </button>
+        </div>
+        <div class="layers-sidebar-content">
+            <div style="margin-bottom: 1rem;">
+                <button class="btn-primary" style="width: 100%;" onclick="window.createNewLayer()">
+                    <i class="iconoir-plus"></i>
+                    <span data-i18n="new_layer">New Layer</span>
+                </button>
+            </div>
+            <div id="layers-tree-sidebar" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <!-- Layers will be rendered here by layers-ui.js -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Image Modal -->
+    <div id="export-image-modal" class="simple-modal hidden">
+        <div class="simple-modal-content" style="max-width: 450px;">
+            <h3 data-i18n="export_image_title">Export as Image</h3>
+
+            <!-- Image Quality -->
+            <div style="margin-bottom: 1rem;">
+                <label style="display: block; margin-bottom: 0.5rem; color: rgba(255,255,255,0.8); font-size: 0.85rem;">
+                    <i class="iconoir-resize"></i> <span data-i18n="export_image_quality">Image Quality</span>
+                </label>
+                <select id="export-image-size" style="width: 100%; padding: 0.5rem; background: rgba(45, 55, 72, 0.8); border: 1px solid rgba(74, 85, 104, 0.5); border-radius: 6px; color: #e2e8f0; font-size: 0.9rem;">
+                    <option value="1" data-i18n="export_quality_low">Low (1x current size)</option>
+                    <option value="2" selected data-i18n="export_quality_medium">Medium (2x current size)</option>
+                    <option value="3" data-i18n="export_quality_high">High (3x current size)</option>
+                </select>
+            </div>
+
+            <!-- Map Title -->
+            <div style="margin-bottom: 1rem;">
+                <label style="display: block; margin-bottom: 0.5rem; color: rgba(255,255,255,0.8); font-size: 0.85rem;">
+                    <i class="iconoir-text"></i> <span data-i18n="export_image_title_field">Map Title</span> <small style="opacity: 0.6;">(optional)</small>
+                </label>
+                <input type="text" id="export-map-title" placeholder="My Map" maxlength="100" style="width: 100%; padding: 0.5rem; background: rgba(45, 55, 72, 0.8); border: 1px solid rgba(74, 85, 104, 0.5); border-radius: 6px; color: #e2e8f0; font-size: 0.9rem;">
+            </div>
+
+            <!-- Include Legend -->
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.75rem; background: rgba(45, 55, 72, 0.6); border: 1px solid rgba(74, 85, 104, 0.5); border-radius: 6px;">
+                    <input type="checkbox" id="export-include-legend" checked style="width: 1.1rem; height: 1.1rem; cursor: pointer;">
+                    <span style="flex: 1; font-size: 0.85rem; color: rgba(255,255,255,0.9);">
+                        <i class="iconoir-list"></i> <span data-i18n="export_image_include_legend">Include layers legend</span>
+                    </span>
+                </label>
+            </div>
+
+            <div class="simple-modal-buttons">
+                <button class="btn-secondary" onclick="closeExportImageModal()">
+                    <span data-i18n="cancel">Cancel</span>
+                </button>
+                <button class="btn-primary" onclick="exportMapAsImage()">
+                    <i class="iconoir-download"></i> <span data-i18n="export_image_download">Download</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu for editing elements -->
+    <div id="context-menu" class="context-menu hidden">
+        <div class="context-menu-item" id="edit-element">
+            <i class="iconoir-edit-pencil"></i>
+            <span>Edit</span>
+        </div>
+        <div class="context-menu-item" id="change-icon" style="display: none;">
+            <i class="iconoir-map-pin"></i>
+            <span id="change-icon-text">Change Icon</span>
+        </div>
+        <div class="context-menu-item" id="copy-point-coordinates" style="display: none;">
+            <i class="iconoir-copy"></i>
+            <span id="copy-point-coordinates-text">Copy Coordinates</span>
+        </div>
+        <div class="context-menu-item" id="toggle-line-measurements" style="display: none;">
+            <i class="iconoir-eye"></i>
+            <span id="toggle-line-measurements-text">Toggle Measurements</span>
+        </div>
+        <div class="context-menu-item" id="change-color">
+            <i class="iconoir-color-wheel"></i>
+            <span>Color</span>
+        </div>
+        <div class="context-menu-item danger" id="delete-element">
+            <i class="iconoir-trash"></i>
+            <span>Delete</span>
+        </div>
+    </div>
+
+    <!-- Color Submenu -->
+    <div id="color-submenu" class="color-submenu hidden">
+        <div class="color-submenu-header">
+            <span>Color</span>
+            <button id="close-color-submenu" class="close-submenu-btn">&times;</button>
+        </div>
+        <div class="color-options-grid">
+            <div class="color-option" data-color="#e74c3c">
+                <span class="color-circle" style="background: #e74c3c;"></span> Red
+            </div>
+            <div class="color-option" data-color="#3498db">
+                <span class="color-circle" style="background: #3498db;"></span> Blue
+            </div>
+            <div class="color-option" data-color="#27ae60">
+                <span class="color-circle" style="background: #27ae60;"></span> Green
+            </div>
+            <div class="color-option" data-color="#f39c12">
+                <span class="color-circle" style="background: #f39c12;"></span> Orange
+            </div>
+            <div class="color-option" data-color="#9b59b6">
+                <span class="color-circle" style="background: #9b59b6;"></span> Purple
+            </div>
+            <div class="color-option" data-color="#e91e63">
+                <span class="color-circle" style="background: #e91e63;"></span> Pink
+            </div>
+        </div>
+    </div>
+
+    <!-- Icon Picker Modal -->
+    <div id="iconPickerModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2 id="iconPickerTitle">Choose an icon</h2>
+                <button class="modal-close" id="iconPickerClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="icon-picker-search">
+                    <input type="text" id="iconSearchInput" placeholder="Search icons..." />
+                </div>
+                <div id="iconPickerGrid" class="icon-picker-grid">
+                    <!-- Icons will be loaded here dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Map & geo libraries (CDN) -->
+    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+    <script src="https://unpkg.com/supercluster@8.0.1/dist/supercluster.min.js"></script>
+    <script src="https://unpkg.com/@tmcw/togeojson@5.8.1/dist/togeojson.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+    <!-- Standalone shim: replaces backend (config / auth / api) -->
+    <script src="js/standalone-stubs.js"></script>
+
+    <!-- Core engine -->
+    <script src="js/notifications.js"></script>
+    <script src="js/geo-utils.js"></script>
+    <script src="js/map-engine.js"></script>
+    <script src="js/label-manager-v2.js"></script>
+    <script src="js/icon-picker.js"></script>
+    <script src="js/custom-select.js"></script>
+    <script src="js/drawing-tool-base.js"></script>
+
+    <!-- Drawing tools -->
+    <script src="js/tools/point-tool.js"></script>
+    <script src="js/tools/line-tool.js"></script>
+    <script src="js/tools/circle-tool.js"></script>
+    <script src="js/tools/polygon-tool.js"></script>
+    <script src="js/tools/isochrone-tool.js"></script>
+
+    <!-- App orchestrator + layers -->
+    <script src="js/app.js"></script>
+    <script src="js/layers-manager.js"></script>
+    <script src="js/layers-ui.js"></script>
+
+    <script src="js/ui.js"></script>
+</body>
+</html>
